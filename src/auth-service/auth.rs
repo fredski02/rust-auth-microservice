@@ -48,7 +48,9 @@ impl Auth for AuthService {
 
         let user_service = self.users_service.lock().unwrap();
         let mut session_service = self.sessions_service.lock().unwrap();
-        let user = user_service.deref().get_user_uuid(req.username, req.password);
+        let user = user_service
+            .deref()
+            .get_user_uuid(req.username, req.password);
         // let result: Option<String> = self.users_service.lock() // Get user's uuid from `users_service`. Panic if the lock is poisoned.
 
         // Match on `result`. If `result` is `None` return a SignInResponse with a the `status_code` set to `Failure`
@@ -56,7 +58,11 @@ impl Auth for AuthService {
         let user_uuid = match user {
             Some(user_id) => user_id,
             None => {
-                let res = SignInResponse { status_code : StatusCode::Failure.into(), user_uuid : "".to_string(), session_token : "".to_string()};
+                let res = SignInResponse {
+                    status_code: StatusCode::Failure.into(),
+                    user_uuid: "".to_string(),
+                    session_token: "".to_string(),
+                };
                 return Ok(Response::new(res));
             }
         };
@@ -64,9 +70,9 @@ impl Auth for AuthService {
         let session_token = session_service.deref_mut().create_session(&user_uuid); // Create new session using `sessions_service`. Panic if the lock is poisoned.
 
         let reply: SignInResponse = SignInResponse {
-            status_code : StatusCode::Success.into(),
-            user_uuid : user_uuid,
-            session_token: session_token
+            status_code: StatusCode::Success.into(),
+            user_uuid: user_uuid,
+            session_token: session_token,
         }; // Create a `SignInResponse` with `status_code` set to `Success`
 
         Ok(Response::new(reply))
@@ -81,15 +87,20 @@ impl Auth for AuthService {
         let req = request.into_inner();
 
         let mut user_service = self.users_service.lock().unwrap();
-        let result = user_service.deref_mut().create_user(req.username, req.password); 
+        let result = user_service
+            .deref_mut()
+            .create_user(req.username, req.password);
 
-        // TODO: Return a `SignUpResponse` with the appropriate `status_code` based on `result`.
         match result {
             Ok(_) => {
-                return Ok(Response::new(SignUpResponse { status_code : StatusCode::Success.into()}))
+                return Ok(Response::new(SignUpResponse {
+                    status_code: StatusCode::Success.into(),
+                }))
             }
             Err(_) => {
-                return Ok(Response::new(SignUpResponse { status_code : StatusCode::Failure.into()}))
+                return Ok(Response::new(SignUpResponse {
+                    status_code: StatusCode::Failure.into(),
+                }))
             }
         }
     }
@@ -102,9 +113,14 @@ impl Auth for AuthService {
 
         let req = request.into_inner();
 
-        // TODO: Delete session using `sessions_service`.
+        let mut session_service = self.sessions_service.lock().unwrap();
+        session_service
+            .deref_mut()
+            .delete_session(req.session_token.as_str());
 
-        let reply: SignOutResponse = todo!(); // Create `SignOutResponse` with `status_code` set to `Success`
+        let reply: SignOutResponse = SignOutResponse {
+            status_code: StatusCode::Success.into(),
+        }; // Create `SignOutResponse` with `status_code` set to `Success`
 
         Ok(Response::new(reply))
     }
@@ -112,7 +128,7 @@ impl Auth for AuthService {
 
 #[cfg(test)]
 mod tests {
-    use crate::{users::UsersImpl, sessions::SessionsImpl};
+    use crate::{sessions::SessionsImpl, users::UsersImpl};
 
     use super::*;
 
@@ -227,7 +243,7 @@ mod tests {
         let auth_service = AuthService::new(users_service, sessions_service);
 
         let request = tonic::Request::new(SignOutRequest {
-            session_token: "".to_owned()
+            session_token: "".to_owned(),
         });
 
         let result = auth_service.sign_out(request).await.unwrap();
