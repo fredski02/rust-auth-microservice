@@ -80,15 +80,16 @@ impl Auth for AuthService {
 
         let req = request.into_inner();
 
-        let result: Result<(), String> = todo!(); // Create a new user through `users_service`. Panic if the lock is poisoned.
+        let mut user_service = self.users_service.lock().unwrap();
+        let result = user_service.deref_mut().create_user(req.username, req.password); 
 
         // TODO: Return a `SignUpResponse` with the appropriate `status_code` based on `result`.
         match result {
             Ok(_) => {
-                todo!()
+                return Ok(Response::new(SignUpResponse { status_code : StatusCode::Success.into()}))
             }
             Err(_) => {
-                todo!()
+                return Ok(Response::new(SignUpResponse { status_code : StatusCode::Failure.into()}))
             }
         }
     }
